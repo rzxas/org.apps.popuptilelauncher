@@ -1,0 +1,18 @@
+{
+  "KPackageStructure": "Plasma/Applet",
+  "KPlugin": {
+    "Id": "org.apps.popuptilelauncher",
+    "Name": "Popup Tile Launcher",
+    "Description": "Tile-based popup application launcher for Plasma 6",
+    "Version": "0.1",
+    "Icon": "/icons/icon.png",
+    "Authors": [
+      { "Name": "rzxa", "Email": "rzxas@outlook.com" }
+    ],
+    "ServiceTypes": [ "Plasma/Applet" ]
+  },
+  "X-Plasma-API-Minimum-Version": "6.0",
+  "X-Plasma-Provides": "org.kde.plasma.launchermenu",
+  "X-Plasma-MainScript": "contents/ui/main.qml",
+  "X-Plasma-API": "plasma"
+}

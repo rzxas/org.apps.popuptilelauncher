@@ -1,0 +1,12 @@
+<!DOCTYPE KConfig>
+<kcfg>
+  <group name="General">
+    <entry name="columns" type="int"><default>4</default></entry>
+    <entry name="rows" type="int"><default>3</default></entry>
+    <entry name="tileSize" type="int"><default>72</default></entry>
+    <entry name="spacing" type="int"><default>8</default></entry>
+    <entry name="bgOpacity" type="double"><default>0.6</default></entry>
+    <entry name="appsJson" type="string"><default>[]</default></entry>
+    <entry name="widgetIcon" type="string"><default>system-run</default></entry>
+  </group>
+</kcfg>

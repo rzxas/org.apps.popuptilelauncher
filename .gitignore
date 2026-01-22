@@ -1,0 +1,28 @@
+# Build directories
+helper/build/*
+launcher/build/*
+
+# Keep existing binaries
+!helper/build/helper-bridge
+!launcher/build/launcher
+!launcher/build/liborg.apps.launcher.so
+
+# Qt / KDE / CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.user
+*.autosave
+
+# Plasma cache
+*.qmlc
+*.jsc
+*.cache
+
+# Logs
+*.log
+
+# Backup files
+*~
+*.bak

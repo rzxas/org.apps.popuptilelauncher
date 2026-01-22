@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/ui">
+        <file>../contents/ui/main.qml</file>
+        <file>../contents/ui/DesktopPicker.qml</file>
+        <file>../contents/ui/Settings.qml</file>
+        <file>../contents/ui/TileGrid.qml</file>
+        <file>../contents/ui/TileItem.qml</file>
+        <file>../contents/config/config.qml</file>
+        <file>imports/org/kde/plasma/plasmoid/qmldir</file>
+        <file>imports/org/kde/plasma/plasmoid/Plasmoid.qml</file>
+        <file>imports/org/kde/plasma/plasmoid/PlasmoidItem.qml</file>
+    </qresource>
+</RCC>
