@@ -3,6 +3,7 @@ import QtQuick.Controls 6
 import QtQuick.Layouts 1
 import QtQuick.Window 2
 import "../config"
+import org.kde.kirigami 2 as Kirigami
 
 Window {
     id: editDialogWindow
@@ -10,9 +11,9 @@ Window {
     width: 560
     height: 420
     visible: false
-    flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.WindowTitleHint | Qt.WindowSystemMenuHint
+    flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     modality: Qt.NonModal
-    color: "#2a2a2a"
+    color: Kirigami.Theme.backgroundColor
     property var configObj: null
     property bool _appsModelConnected: false
 
@@ -68,10 +69,17 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        color: "#2a2a2a"
+        color: Kirigami.Theme.backgroundColor
         radius: 8
-        border.color: "#444"
-        border.width: 1
+
+        border.color: (Kirigami && Kirigami.Theme && Kirigami.Theme.borderColor)
+        ? Kirigami.Theme.borderColor
+        : (luminance(Kirigami.Theme.backgroundColor) > 0.5 ? Qt.rgba(0,0,0,0.12) : Qt.rgba(1,1,1,0.06))
+        border.width: 1.5
+
+        function luminance(c) {
+            return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -80,7 +88,7 @@ Window {
 
             RowLayout {
                 Layout.fillWidth: true
-                Label { text: editDialogWindow.title; font.pixelSize: 16; color: "#EEE"; Layout.alignment: Qt.AlignLeft }
+                Label { text: editDialogWindow.title; font.pixelSize: 16; Layout.alignment: Qt.AlignLeft }
                 Item { Layout.fillWidth: true }
                 Button { text: "Close"; onClicked: editDialogWindow.visible = false }
             }
@@ -104,9 +112,21 @@ Window {
                     Rectangle {
                         id: bg
                         anchors.fill: parent
-                        color: (editDialogWindow.draggingIndex === index) ? "#3a3a3a" : "#2a2a2a"
-                        border.color: "#444"
+                        property color bgColor: (editDialogWindow.draggingIndex === index)
+                        ? Qt.rgba(0.23,0.23,0.23,1) // overlay drag
+                        : (typeof Kirigami !== "undefined" && Kirigami.Theme && Kirigami.Theme.backgroundColor
+                        ? Kirigami.Theme.backgroundColor
+                        : Qt.application.palette.window)
+                        color: bgColor
                         radius: 6
+
+                        function luminance(c) { return 0.2126*c.r + 0.7152*c.g + 0.0722*c.b }
+
+                        border.color: (typeof Kirigami !== "undefined" && Kirigami.Theme && Kirigami.Theme.borderColor)
+                        ? Kirigami.Theme.borderColor
+                        : (luminance(bgColor) > 0.5 ? Qt.rgba(0,0,0,0.12) : Qt.rgba(1,1,1,0.06))
+                        border.width: 1
+
                         opacity: (editDialogWindow.draggingIndex === index) ? 0.85 : 1.0
                     }
 
@@ -140,7 +160,6 @@ Window {
                             Label {
                                 id: nameLabel
                                 text: (modelData.name || modelData.exec || "Unnamed") + (modelData.runInTerminal ? "  [T]" : "")
-                                color: "#EEE"
                                 elide: Text.ElideRight
                                 Layout.preferredWidth: 200
                             }
@@ -394,13 +413,28 @@ Window {
         width: 420
         height: 210
         visible: false
-        flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint //| Qt.WindowTitleHint
+        flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         modality: Qt.WindowModal
+        color: Kirigami.Theme.backgroundColor
         property int editingIndex: -1
         property var editModel: null
         property string previewIconSource: ""
 
-        Rectangle { anchors.fill: parent; color: "#2a2a2a"; radius: 6; border.color: "#444"; border.width: 1 }
+        Rectangle {
+            anchors.fill: parent
+            color: Kirigami.Theme.backgroundColor
+            radius: 8
+
+            border.color: (Kirigami && Kirigami.Theme && Kirigami.Theme.borderColor)
+            ? Kirigami.Theme.borderColor
+            : (luminance(Kirigami.Theme.backgroundColor) > 0.6 ? Qt.rgba(0,0,0,0.12) : Qt.rgba(1,1,1,0.06))
+            border.width: 1.5
+
+            function luminance(c) {
+                return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+            }
+        }
+
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 10; spacing: 8
             RowLayout {

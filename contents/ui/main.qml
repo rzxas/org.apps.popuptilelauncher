@@ -6,6 +6,7 @@ import Qt.labs.platform
 import org.kde.plasma.plasmoid
 import org.apps.launcher 1
 import "../config"
+import org.kde.kirigami 2 as Kirigami
 
 PlasmoidItem {
     id: root
@@ -1005,8 +1006,8 @@ PlasmoidItem {
         Image {
             id: widgetIconImage
             anchors.centerIn: parent
-            // width: 28; height: 28
-            width: 48; height: 48
+            width: 32; height: 32
+            // width: 48; height: 48
             source: (configObj && configObj.widgetIcon && configObj.widgetIcon.indexOf("/") !== -1) ? configObj.widgetIcon
                     : ((configObj && configObj.widgetIcon) ? ("image://theme/" + configObj.widgetIcon) : "")
             visible: source !== "" && source !== "null"
@@ -1143,10 +1144,24 @@ PlasmoidItem {
         visible: false
         flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         modality: Qt.NonModal
+        color: Kirigami.Theme.backgroundColor
         width: 410
         height: 360
 
-        Rectangle { anchors.fill: parent; color: "#2a2a2a"; radius: 8; border.color: "#444"; border.width: 1 }
+        Rectangle {
+            anchors.fill: parent
+            color: Kirigami.Theme.backgroundColor
+            radius: 8
+
+            border.color: (Kirigami && Kirigami.Theme && Kirigami.Theme.borderColor)
+            ? Kirigami.Theme.borderColor
+            : (luminance(Kirigami.Theme.backgroundColor) > 0.6 ? Qt.rgba(0,0,0,0.12) : Qt.rgba(1,1,1,0.06))
+            border.width: 1
+
+            function luminance(c) {
+                return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+            }
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -1211,16 +1226,24 @@ PlasmoidItem {
         visible: false
         flags: Qt.Window | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
         modality: Qt.NonModal
+        color: Kirigami.Theme.backgroundColor
         width: 380
         height: 220
         property string pickedIcon: ""
 
         Rectangle {
             anchors.fill: parent
-            color: "#2a2a2a"
-            radius: 6
-            border.color: "#444"
-            border.width: 1
+            color: Kirigami.Theme.backgroundColor
+            radius: 8
+
+            border.color: (Kirigami && Kirigami.Theme && Kirigami.Theme.borderColor)
+            ? Kirigami.Theme.borderColor
+            : (luminance(Kirigami.Theme.backgroundColor) > 0.6 ? Qt.rgba(0,0,0,0.12) : Qt.rgba(1,1,1,0.06))
+            border.width: 1.5
+
+            function luminance(c) {
+                return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+            }
 
             property string pickedIcon: ""
 

@@ -315,7 +315,7 @@ ColumnLayout {
             }
 
             RowLayout {
-                spacing: 12
+                spacing: 10
                 Item { width: 14 }
                 Label { text: "Popup width:" }
                 SpinBox {
@@ -326,7 +326,7 @@ ColumnLayout {
                     value: pendingPopupWidth
                     onValueChanged: pendingPopupWidth = value
                 }
-                Item { width: 9 }
+                Item { width: 6 }
                 Label { text: "Popup height:" }
                 SpinBox {
                     id: popupHeightSpin
@@ -414,7 +414,7 @@ ColumnLayout {
 
             onClicked: {
                 try {
-                    var readmeUrl = Qt.resolvedUrl("../ReadMe.txt") || ""
+                    var readmeUrl = Qt.resolvedUrl("../../README.md") || ""
                     Utils.dbg("DBG Settings: Help -> resolved ReadMe URL:", readmeUrl)
 
                     if (!readmeUrl || readmeUrl.length === 0) {
