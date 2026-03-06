@@ -8,6 +8,7 @@ Item {
     width: 0; height: 0
     signal appsModelUpdated()
 
+    property int widgetIconSize: 32
     property int columns: 4
     property int rows: 4
     property int tileSize: 52
@@ -57,6 +58,7 @@ Item {
             Utils.dbg("DBG _loadAllInstances raw:", (raw ? raw.substr(0,200) : "<empty>"));
             var obj = {}
             try { obj = JSON.parse(raw || "{}") || {} } catch(e) { obj = {} }
+            Utils.dbg("DBG _loadAllInstances: parsed-keys=", Object.keys(obj || {}).slice(0,20));
             if (!obj || typeof obj !== "object" || Array.isArray(obj)) obj = {}
             return obj
         } catch(e) { Utils.dbg("DBG _loadAllInstances exception", e); return {} }
@@ -92,6 +94,8 @@ Item {
                 // Fallback to old store
                 try { return (store && typeof store.instancesJson === "string" && store.instancesJson.length) ? store.instancesJson : "{}" } catch(e) { return "{}" }
         } catch(e) { return "{}" }
+        Utils.dbg("DBG _readInstanceRaw: ik=", ik, "HelperBridge=", (typeof HelperBridge !== "undefined"));
+        Utils.dbg("DBG _readInstanceRaw: raw-len=", (r ? r.length : 0), "raw-snippet=", (r ? r.substr(0,512) : "<empty>"));
     }
 
     function _writeInstanceRaw(ik, jsonText) {
@@ -104,7 +108,22 @@ Item {
                     } catch(e) { /* ignore and fallback */ }
                 }
                 // Fallback: write into store.instancesJson (legacy)
-                try { if (store) { store.instancesJson = jsonText; return true } } catch(e) {}
+                try {
+                    if (store) {
+                        var parsed = {};
+                        try { parsed = JSON.parse(jsonText || "{}"); } catch(e) { parsed = {}; }
+                        var keys = Object.keys(parsed || {});
+                        var hasPinst = keys.some(function(k){ return k.indexOf("pinst-") === 0; });
+                        if (hasPinst) {
+                            store.instancesJson = jsonText;
+                        } else {
+                            var map = {};
+                            map[ik] = parsed;
+                            store.instancesJson = JSON.stringify(map);
+                        }
+                        return true;
+                    }
+                } catch(e) { /* fallback false */ }
                 return false
         } catch(e) { return false }
     }
@@ -157,7 +176,28 @@ Item {
             all[ik][key] = value
 
             // Save all instances (legacy storage)
-            _saveAllInstances(all)
+            try {
+                // keep all map up-to-date (we already modified all[ik] above)
+                var allJson = JSON.stringify(all || {});
+                var wrotePerInstance = false;
+                try {
+                    // Try to write the full map via helper (helper may still accept per-instance file)
+                    wrotePerInstance = _writeInstanceRaw(ik, allJson);
+                } catch(e) { wrotePerInstance = false; Utils.dbg("DBG setInstanceValue: _writeInstanceRaw threw", e); }
+
+                Utils.dbg("DBG config.setInstanceValue: wrote key=", key, "value=", value, "into ik=", ik, "wrotePerInstance=", wrotePerInstance);
+
+                if (!wrotePerInstance) {
+                    // fallback: ensure legacy store contains full map
+                    try { _saveAllInstances(all); } catch(e) { Utils.dbg("DBG setInstanceValue: fallback _saveAllInstances failed", e); }
+                } else {
+                    // keep legacy store in sync (optional)
+                    try { if (store) store.instancesJson = JSON.stringify(all); } catch(e) { Utils.dbg("DBG setInstanceValue: sync legacy store failed", e); }
+                }
+            } catch(e) {
+                Utils.dbg("DBG setInstanceValue: write exception", e);
+                try { _saveAllInstances(all); } catch(e) { Utils.dbg("DBG setInstanceValue: final fallback failed", e); }
+            }
 
             // Update the current properties in memory (if it's a known key)
             try {
@@ -165,6 +205,23 @@ Item {
                     widgetIcon = (typeof value === "string") ? value : ""
                 } else if (key === "tileSize" && typeof value === "number") {
                     tileSize = value
+                } else if (key === "widgetIconSize") {
+                    try {
+                        var n = (typeof value === "number") ? value : (parseInt(value) || 0);
+                        if (n > 0) {
+                            widgetIconSize = n;
+                            // ensure stored value is numeric as well
+                            all[ik][key] = n;
+                        } else {
+                            // if invalid, remove or keep existing
+                            if (typeof all[ik][key] !== "undefined") {
+                                // keep existing numeric value
+                                var prev = parseInt(all[ik][key]) || widgetIconSize;
+                                all[ik][key] = prev;
+                                widgetIconSize = prev;
+                            }
+                        }
+                    } catch(e) { Utils.dbg("DBG config.setInstanceValue widgetIconSize normalize failed", e) }
                 } else if (key === "columns" || key === "rows") {
                     // Don't touch it here — loadInstanceConfig will pick it up on the next call
                 }
@@ -196,12 +253,16 @@ Item {
 
             var all = {}
             try { all = JSON.parse(raw || "{}") || {} } catch(e) { all = {} }
+            var topKeys = Object.keys(all || {});
+            var hasPinstKeys = topKeys.some(function(k){ return k.indexOf("pinst-") === 0 });
+            Utils.dbg("DBG loadInstanceConfig: ik=", ik, "topKeys=", topKeys, "hasPinstKeys=", hasPinstKeys);
+            Utils.dbg("DBG loadInstanceConfig: all-snippet=", JSON.stringify(all).substr(0,1024));
 
             // If the JSON is a map that already contains instance keys (preferred)
             var inst = {}
             if (all && typeof all === "object") {
                 if (all[ik] && typeof all[ik] === "object") {
-                    inst = all[ik]
+                    inst = all[ik];
                 } else if (Array.isArray(all.apps) || typeof all.apps !== "undefined") {
                     // Only migrate legacy top-level config if it looks like a single-instance dump
                     // (heuristic: no other pinst- keys present and object has only top-level fields)
@@ -244,6 +305,7 @@ Item {
                 try { popupWidth = (typeof inst.popupWidth === "number") ? inst.popupWidth : popupWidth } catch(e){}
                 try { popupHeight = (typeof inst.popupHeight === "number") ? inst.popupHeight : popupHeight } catch(e){}
                 try { widgetIcon = (typeof inst.widgetIcon === "string" && inst.widgetIcon.length) ? inst.widgetIcon : widgetIcon } catch(e){}
+                try { widgetIconSize = (typeof inst.widgetIconSize === "number") ? inst.widgetIconSize : widgetIconSize } catch(e){}
                 try { listIconSize = (typeof inst.listIconSize === "number") ? inst.listIconSize : listIconSize } catch(e){}
 
                 Utils.dbg("DBG config: loaded appsModel length =", appsModel.length)
@@ -289,6 +351,9 @@ Item {
                 try { snapshot = appsModel ? appsModel.slice(0) : []; } catch(e2) { snapshot = []; }
             }
 
+            if ((!snapshot || snapshot.length === 0) && Array.isArray(existingInst.apps) && existingInst.apps.length > 0) {
+                snapshot = existingInst.apps.slice(0);
+            }
             // Merge existing instance with updated fields to avoid losing custom keys
             var existingInst = (all[ik] && typeof all[ik] === "object") ? all[ik] : {};
             var instToSave = Object.assign({}, existingInst, {
@@ -302,6 +367,7 @@ Item {
                 popupWidth: popupWidth,
                 popupHeight: popupHeight,
                 widgetIcon: widgetIcon,
+                widgetIconSize: widgetIconSize,
                 listIconSize: listIconSize,
                 debugLogs: (typeof existingInst.debugLogs !== "undefined") ? existingInst.debugLogs : !!(existingInst.debugLogs || false),
             });
@@ -312,7 +378,16 @@ Item {
             // Try per-instance write via helper; fallback to legacy full-map write
             var wrote = false;
             try {
-                wrote = _writeInstanceRaw(ik, instJson);
+                // wrote = _writeInstanceRaw(ik, instJson);
+                all[ik] = instToSave;
+                var allJson = JSON.stringify(all || {});
+                var wrote = false;
+                try { wrote = _writeInstanceRaw(ik, allJson); } catch(e) { wrote = false; Utils.dbg("DBG config.saveInstanceConfig: _writeInstanceRaw threw", e); }
+                if (!wrote) {
+                    _saveAllInstances(all);
+                } else {
+                    try { if (store) store.instancesJson = JSON.stringify(all); } catch(e) {}
+                }
             } catch(e) {
                 wrote = false;
                 Utils.dbg("DBG config.saveInstanceConfig: _writeInstanceRaw threw", e);

@@ -62,21 +62,23 @@ Note: when installing to a user directory, set an appropriate `CMAKE_INSTALL_PRE
 
 Recommended Installation Paths
 ------------------------------
-
-Per-user installation (no sudo):
     QML plugin:
-        ~/.local/lib/qt6/qml/org/apps/launcher/
+        Path for ArchLinux => /usr/lib/qt6/qml
+        Path for Debian => /usr/lib/x86_64-linux-gnu/qt6/qml
+        Path for Fedora => /usr/lib64/qt6/qml
         Copy: liborg.apps.launcher.so, qmldir, QML files
-
+    
+    Example with Debian path:
+        sudo mkdir -p /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher
+        sudo cp launcher/build/liborg.apps.launcher.so /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/
+        sudo cp launcher/imports/org/apps/launcher/qmldir /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/
+        
+Per-user installation (no sudo):
     Binaries:
         ~/.local/bin/
         Copy: launcher, plasma_helper
 
     Example:
-        mkdir -p ~/.local/lib/qt6/qml/org/apps/launcher
-        cp launcher/build/liborg.apps.launcher.so ~/.local/lib/qt6/qml/org/apps/launcher/
-        cp launcher/imports/org/apps/launcher/qmldir ~/.local/lib/qt6/qml/org/apps/launcher/
-
         mkdir -p ~/.local/bin
         cp launcher/build/launcher ~/.local/bin/
         cp helper/build/plasma_helper ~/.local/bin/
@@ -84,15 +86,12 @@ Per-user installation (no sudo):
         chmod +x ~/.local/bin/launcher ~/.local/bin/plasma_helper
 
 System-wide installation (all users):
-    QML plugin:
-        /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/
-
-        sudo mkdir -p /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher
-        sudo cp launcher/build/liborg.apps.launcher.so /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/
-        sudo cp launcher/imports/org/apps/launcher/qmldir /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/
-
     Binaries:
         /usr/bin/ or /usr/local/bin/
+        cp launcher/build/launcher /usr/local/bin/
+        cp helper/build/plasma_helper /usr/local/bin/
+
+        chmod +x /usr/local/bin/launcher /usr/local/bin/plasma_helper
 
 Checking Dependencies (ABI compatibility)
 -----------------------------------------
@@ -100,7 +99,7 @@ Qt6 ABI must match your system Qt version.
 
 Check with:
 
-    ldd ~/.local/lib/qt6/qml/org/apps/launcher/liborg.apps.launcher.so
+    ldd /usr/lib/x86_64-linux-gnu/qt6/qml/org/apps/launcher/liborg.apps.launcher.so
     ldd ~/.local/bin/launcher
     ldd ~/.local/bin/plasma_helper
 
@@ -112,8 +111,6 @@ Qt6 blocks XMLHttpRequest on local files by default.
 
 To allow reading /usr/share/applications/*.desktop:
 
-Per-user (recommended):
-
     mkdir -p ~/.config/plasma-workspace/env
     cat > ~/.config/plasma-workspace/env/enable_qml_xhr.sh <<'EOF'
     #!/bin/sh
@@ -121,16 +118,6 @@ Per-user (recommended):
     export QML_XHR_ALLOW_FILE_WRITE=1
     EOF
     chmod +x ~/.config/plasma-workspace/env/enable_qml_xhr.sh
-
-System-wide:
-
-    sudo mkdir -p /etc/plasma-workspace/env
-    sudo tee /etc/plasma-workspace/env/enable_qml_xhr.sh > /dev/null <<'EOF'
-    #!/bin/sh
-    export QML_XHR_ALLOW_FILE_READ=1
-    export QML_XHR_ALLOW_FILE_WRITE=1
-    EOF
-    sudo chmod +x /etc/plasma-workspace/env/enable_qml_xhr.sh
 
 Log out and log back in to apply.
 
@@ -211,7 +198,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/plasma_helper
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/usr/local/bin/plasma_helper
 Restart=on-failure
 RestartSec=2
 # If the helper should work in a Wayland/X11 environment, you can export environment variables
@@ -231,12 +219,12 @@ systemctl --user status plasmahelper.service
 journalctl --user -u plasmahelper.service -f
 ```
 
-Example DBus service file (`~/.local/share/dbus-1/services/org.apps.popuptilelauncher.Helper.service`):
+Example DBus service file (`~/.local/share/dbus-1/services/org.apps.PlasmaHelper.service`):
 
 ```
 [D-BUS Service]
-Name=org.apps.popuptilelauncher.Helper
-Exec=/usr/bin/plasma_helper
+Name=org.apps.PlasmaHelper
+Exec=/usr/local/bin/plasma_helper
 ```
 
 Place this file in `~/.local/share/dbus-1/services/` or `/usr/share/dbus-1/services/` to allow DBus activation. Choose between a persistent systemd user service or DBus activation depending on whether you want the helper always running or started on demand.

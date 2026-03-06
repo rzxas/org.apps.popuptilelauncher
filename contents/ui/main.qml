@@ -34,6 +34,8 @@ PlasmoidItem {
     property bool useListView: false
     property string _appsModelUpdatedConnectedFor: ""
 
+    property int widgetIconSize: 32
+
     Component.onCompleted: Utils.dbg("DBG LOADED main.qml from: /home/../.../main.qml")
 
     MouseArea {
@@ -203,6 +205,15 @@ PlasmoidItem {
         return { width: 1280, height: 800, dpr: 1 }
     }
 
+    function computewidgetIconSize() {
+        try {
+            if (configObj && typeof configObj.widgetIconSize === "number" && !isNaN(configObj.widgetIconSize) && isFinite(configObj.widgetIconSize)) {
+                return configObj.widgetIconSize;
+            }
+        } catch(e) {}
+        return 32;
+    }
+
     Loader {
         id: configLoader
         source: Qt.resolvedUrl("../config/config.qml")
@@ -233,6 +244,18 @@ PlasmoidItem {
                         try { configLoader.item.instanceKey = ik } catch(e) { Utils.dbg("DBG: assign instanceKey failed", e) }
                     }
                     configObj = configLoader.item
+                    Qt.callLater(function() {
+                        try { if (configObj && typeof configObj.loadInstanceConfig === "function") configObj.loadInstanceConfig() } catch(e) { Utils.dbg("loadInstanceConfig failed", e) }
+                        Qt.callLater(function() {
+                            try { widgetIconSize = computewidgetIconSize() } catch(e) {}
+                            try {
+                                if (configObj && configObj.appsModelUpdated && typeof configObj.appsModelUpdated.connect === "function") {
+                                    configObj.appsModelUpdated.connect(function(){ try { widgetIconSize = computewidgetIconSize() } catch(e) {} })
+                                }
+                            } catch(e) { Utils.dbg("widgetIconSize init/connect failed", e) }
+                        })
+                    })
+
                     try {
                         function tryAssignPopupGrid() {
                             try {
@@ -1006,11 +1029,21 @@ PlasmoidItem {
         Image {
             id: widgetIconImage
             anchors.centerIn: parent
-            width: 32; height: 32
-            // width: 48; height: 48
+            width: computewidgetIconSize()
+            height: computewidgetIconSize()
             source: (configObj && configObj.widgetIcon && configObj.widgetIcon.indexOf("/") !== -1) ? configObj.widgetIcon
                     : ((configObj && configObj.widgetIcon) ? ("image://theme/" + configObj.widgetIcon) : "")
             visible: source !== "" && source !== "null"
+
+            Component.onCompleted: {
+                Utils.dbg("DBG main: widgetIconImage created; parent:",
+                          widgetIconImage.parent ? (widgetIconImage.parent.width + "x" + widgetIconImage.parent.height) : "<no-parent>",
+                          "widgetIconSize:", widgetIconSize)
+            }
+
+            onVisibleChanged: {
+                Utils.dbg("DBG main: widgetIconImage visible changed:", visible, "widgetIconSize:", widgetIconSize)
+            }
         }
 
         MouseArea {

@@ -4,7 +4,7 @@
     "Id": "org.apps.popuptilelauncher",
     "Name": "Popup Tile Launcher",
     "Description": "Tile-based popup application launcher for Plasma 6",
-    "Version": "0.2",
+    "Version": "0.3",
     "Icon": "/icons/icon.png",
     "Authors": [
       { "Name": "rzxa", "Email": "rzxas@outlook.com" }

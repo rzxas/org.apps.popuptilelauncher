@@ -3,7 +3,7 @@ helper/build/*
 launcher/build/*
 
 # Keep existing binaries
-!helper/build/helper-bridge
+!helper/build/plasma_helper
 !launcher/build/launcher
 !launcher/build/liborg.apps.launcher.so
 

@@ -25,6 +25,7 @@ ColumnLayout {
     property int pendingPopupHeight: 360
     property bool pendingDisplayAsList: false
     property int pendingListIconSize: 32
+    property int pendingwidgetIconSize: 32
     property string pendingWidgetIcon: ""
 
     function iconSourceFromValue(v) {
@@ -45,6 +46,7 @@ ColumnLayout {
             pendingPopupHeight = (typeof configObj.popupHeight === "number") ? configObj.popupHeight : pendingPopupHeight
             pendingDisplayAsList = (typeof configObj.displayAsList === "boolean") ? configObj.displayAsList : pendingDisplayAsList
             pendingListIconSize = (typeof configObj.listIconSize === "number") ? configObj.listIconSize : pendingListIconSize
+            pendingwidgetIconSize = (typeof configObj.widgetIconSize === "number") ? configObj.widgetIconSize : pendingwidgetIconSize
 
             // widgetIcon: prefer instance value if available
             try {
@@ -55,6 +57,8 @@ ColumnLayout {
 
             // refresh UI bindings that depend on pending*
             try { appsList.model = (configObj && configObj.appsModel) ? configObj.appsModel : [] } catch(e) {}
+            Utils.dbg("DBG Settings: loadPendingFromConfig: configObj.widgetIconSize=", configObj && configObj.widgetIconSize,
+                      "getInstanceValue=", (configObj && typeof configObj.getInstanceValue === "function") ? configObj.getInstanceValue("widgetIconSize") : "<no-get>");
         } catch(e) { Utils.dbg("DBG Settings: loadPendingFromConfig failed", e) }
     }
 
@@ -100,6 +104,7 @@ ColumnLayout {
             spacingSpin.value = (configObj && typeof configObj.spacing === "number") ? configObj.spacing : spacingSpin.value
             popupWidthSpin.value = (configObj && typeof configObj.popupWidth === "number") ? configObj.popupWidth : popupWidthSpin.value
             popupHeightSpin.value = (configObj && typeof configObj.popupHeight === "number") ? configObj.popupHeight : popupHeightSpin.value
+            widgetIconSizeSpin.value = (configObj && typeof configObj.widgetIconSize === "number") ? configObj.widgetIconSize : widgetIconSize.value
 
             // Debug log
             try {
@@ -157,22 +162,39 @@ ColumnLayout {
 
     RowLayout {
         spacing: 12
-        Item { width: 2 }
-        Label { text: "Widget icon:" }
+        // Left column: label and size control stacked vertically
+        ColumnLayout {
+            spacing: 6
+            Layout.alignment: Qt.AlignVCenter
+            Label { text: "Widget icon:" }
 
+            RowLayout {
+                spacing: 6
+                Label { text: "Size:"; verticalAlignment: Text.AlignVCenter }
+                SpinBox {
+                    id: widgetIconSizeSpin
+                    leftPadding: 6
+                    rightPadding: 20
+                    from: 8; to: 256
+                    value: pendingwidgetIconSize
+                    // Layout.preferredWidth: 90
+                    onValueChanged: pendingwidgetIconSize = value
+                }
+            }
+        }
+
+        // Middle: icon picker loader (keeps existing behavior)
         Loader { id: iconPickerLoader; source: Qt.resolvedUrl("IconPicker.qml") }
         Connections {
             target: iconPickerLoader.item
             function onAccepted(v) {
-                try {
-                    pendingWidgetIcon = v || ""
-                    widgetIconName.text = pendingWidgetIcon
-                    try { widgetIconBtn.contentItem.source = iconSourceFromValue(pendingWidgetIcon) } catch(e) {}
-                } catch(e) { Utils.dbg("DBG Settings: IconPicker accepted handler threw", e) }
+                pendingWidgetIcon = v || ""
+                widgetIconName.text = pendingWidgetIcon
+                try { widgetIconBtn.contentItem.source = iconSourceFromValue(pendingWidgetIcon) } catch(e) {}
             }
-            function onRejected() { /* optional */ }
         }
 
+        // Preview button (unchanged)
         Rectangle {
             id: widgetIconBtnFrame
             Layout.preferredWidth: 52
@@ -189,7 +211,7 @@ ColumnLayout {
                 width: 48; height: 48
                 onClicked: {
                     if (!iconPickerLoader.item) iconPickerLoader.active = true
-                    Qt.callLater(function(){ if (iconPickerLoader.item) iconPickerLoader.item.open() })
+                        Qt.callLater(function(){ if (iconPickerLoader.item) iconPickerLoader.item.open() })
                 }
                 contentItem: Item {
                     anchors.fill: parent
@@ -200,17 +222,17 @@ ColumnLayout {
                         height: Math.min(parent.height, 48)
                         fillMode: Image.PreserveAspectFit
                         smooth: true
-                        // preview uses pendingWidgetIcon first, then config
                         source: (pendingWidgetIcon && pendingWidgetIcon.length)
-                            ? iconSourceFromValue(pendingWidgetIcon)
-                            : (configObj && typeof configObj.getInstanceValue === "function"
-                                ? iconSourceFromValue(configObj.getInstanceValue("widgetIcon") || (configObj.widgetIcon || ""))
-                                : iconSourceFromValue(configObj ? (configObj.widgetIcon || "") : ""))
+                        ? iconSourceFromValue(pendingWidgetIcon)
+                        : (configObj && typeof configObj.getInstanceValue === "function"
+                        ? iconSourceFromValue(configObj.getInstanceValue("widgetIcon") || (configObj.widgetIcon || ""))
+                        : iconSourceFromValue(configObj ? (configObj.widgetIcon || "") : ""))
                     }
                 }
             }
         }
 
+        // Path text field (unchanged)
         TextField {
             id: widgetIconName
             placeholderText: "Icon name (theme) or file path"
@@ -275,7 +297,7 @@ ColumnLayout {
                     value: pendingColumns
                     onValueChanged: pendingColumns = value
                 }
-                Item { width: 18 }
+                Item { width: 26 }
                 Label { text: "Rows:" }
                 Item { width: 19 }
                 SpinBox {
@@ -315,7 +337,7 @@ ColumnLayout {
             }
 
             RowLayout {
-                spacing: 10
+                spacing: 8
                 Item { width: 14 }
                 Label { text: "Popup width:" }
                 SpinBox {
@@ -488,6 +510,7 @@ ColumnLayout {
                         popupWidthSpin.value = pendingPopupWidth
                         popupHeightSpin.value = pendingPopupHeight
                         widgetIconName.text = pendingWidgetIcon
+                        widgetIconSizeSpin.value = pendingwidgetIconSize
                         try { widgetIconBtn.contentItem.source = iconSourceFromValue(pendingWidgetIcon || "") } catch(e) {}
 
                         // Reset Utils.debugLogs to the saved value (if any)
@@ -534,6 +557,17 @@ ColumnLayout {
                             configObj.widgetIcon = toSave
                         }
                     } catch(e) { Utils.dbg("DBG Settings: apply -> setInstanceValue(widgetIcon) failed", e) }
+
+                    Utils.dbg("DBG Settings: Apply -> pendingwidgetIconSize=", pendingwidgetIconSize,
+                              "willUseSetInstanceValue=", (configObj && typeof configObj.setInstanceValue === "function"));
+
+                    try {
+                        if (configObj && typeof configObj.setInstanceValue === "function") {
+                            configObj.setInstanceValue("widgetIconSize", pendingwidgetIconSize)
+                        } else if (configObj) {
+                            configObj.widgetIconSize = pendingwidgetIconSize
+                        }
+                    } catch(e) { Utils.dbg("DBG Settings: apply -> setInstanceValue(widgetIconSize) failed", e) }
 
                     // Debug checkbox
                     try {
