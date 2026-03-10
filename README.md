@@ -82,15 +82,14 @@ Per-user installation (no sudo):
         mkdir -p ~/.local/bin
         cp launcher/build/launcher ~/.local/bin/
         cp helper/build/plasma_helper ~/.local/bin/
-
         chmod +x ~/.local/bin/launcher ~/.local/bin/plasma_helper
 
 System-wide installation (all users):
     Binaries:
         /usr/bin/ or /usr/local/bin/
+        
         cp launcher/build/launcher /usr/local/bin/
         cp helper/build/plasma_helper /usr/local/bin/
-
         chmod +x /usr/local/bin/launcher /usr/local/bin/plasma_helper
 
 Checking Dependencies (ABI compatibility)
