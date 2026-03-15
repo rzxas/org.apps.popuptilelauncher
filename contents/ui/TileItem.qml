@@ -130,7 +130,7 @@ Item {
             id: tileLabel
             width: parent.width - 12
             anchors.horizontalCenter: parent.horizontalCenter
-            color: "#EEE"
+            color: (configObj && typeof configObj.popupTextColor === "string" && configObj.popupTextColor.length) ? configObj.popupTextColor : "white"
             font.pixelSize: computedFontSize
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter

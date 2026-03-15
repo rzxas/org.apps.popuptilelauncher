@@ -35,6 +35,8 @@ PlasmoidItem {
     property string _appsModelUpdatedConnectedFor: ""
 
     property int widgetIconSize: 32
+    property string popupColorSafe: "#222222"
+    property real popupOpacitySafe: 1.0
 
     Component.onCompleted: Utils.dbg("DBG LOADED main.qml from: /home/../.../main.qml")
 
@@ -214,6 +216,29 @@ PlasmoidItem {
         return 32;
     }
 
+    function computePopupColorSafe() {
+        try {
+            // prefer per-instance value if available
+            if (configObj && typeof configObj.getInstanceValue === "function") {
+                var v = configObj.getInstanceValue("popupColor")
+                if (typeof v === "string" && v.length) return v
+            }
+            if (configObj && typeof configObj.popupColor === "string" && configObj.popupColor.length) return configObj.popupColor
+        } catch(e) {}
+        return "#222222"
+    }
+
+    function computePopupOpacitySafe() {
+        try {
+            if (configObj && typeof configObj.getInstanceValue === "function") {
+                var v = configObj.getInstanceValue("popupOpacity")
+                if (typeof v === "number" && !isNaN(v) && isFinite(v)) return v
+            }
+            if (configObj && typeof configObj.popupOpacity === "number" && !isNaN(configObj.popupOpacity) && isFinite(configObj.popupOpacity)) return configObj.popupOpacity
+        } catch(e) {}
+        return 1.0
+    }
+
     Loader {
         id: configLoader
         source: Qt.resolvedUrl("../config/config.qml")
@@ -248,6 +273,22 @@ PlasmoidItem {
                         try { if (configObj && typeof configObj.loadInstanceConfig === "function") configObj.loadInstanceConfig() } catch(e) { Utils.dbg("loadInstanceConfig failed", e) }
                         Qt.callLater(function() {
                             try { widgetIconSize = computewidgetIconSize() } catch(e) {}
+                            try {
+                                // initialize cached safe props using the getters
+                                popupColorSafe = computePopupColorSafe()
+                                popupOpacitySafe = computePopupOpacitySafe()
+                            } catch(e) { Utils.dbg("DBG main: init popupSafe props failed", e) }
+                            try {
+                                if (configObj && configObj.appsModelUpdated && typeof configObj.appsModelUpdated.connect === "function") {
+                                    configObj.appsModelUpdated.connect(function(){
+                                        try {
+                                            // refresh cached values when instance config changes
+                                            popupColorSafe = computePopupColorSafe()
+                                            popupOpacitySafe = computePopupOpacitySafe()
+                                        } catch(e) { Utils.dbg("DBG main: appsModelUpdated -> refresh popupSafe failed", e) }
+                                    })
+                                }
+                            } catch(e) { Utils.dbg("DBG main: attach appsModelUpdated for popupSafe failed", e) }
                             try {
                                 if (configObj && configObj.appsModelUpdated && typeof configObj.appsModelUpdated.connect === "function") {
                                     configObj.appsModelUpdated.connect(function(){ try { widgetIconSize = computewidgetIconSize() } catch(e) {} })
@@ -1107,7 +1148,8 @@ PlasmoidItem {
 
             Rectangle {
                 anchors.fill: parent
-                color: "#222"
+                color: popupColorSafe
+                opacity: popupOpacitySafe
                 radius: 8
                 border.color: "#444"
                 border.width: 1
@@ -1179,7 +1221,7 @@ PlasmoidItem {
         modality: Qt.NonModal
         color: Kirigami.Theme.backgroundColor
         width: 410
-        height: 360
+        height: 450
 
         Rectangle {
             anchors.fill: parent

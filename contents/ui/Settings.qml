@@ -27,6 +27,9 @@ ColumnLayout {
     property int pendingListIconSize: 32
     property int pendingwidgetIconSize: 32
     property string pendingWidgetIcon: ""
+    property real pendingPopupOpacity: 1.0
+    property string pendingPopupColor: "#222222"
+    property string pendingPopupTextColor: ""
 
     function iconSourceFromValue(v) {
         if (!v || v.length === 0) return Qt.resolvedUrl("../icons/default-i.png")
@@ -47,6 +50,9 @@ ColumnLayout {
             pendingDisplayAsList = (typeof configObj.displayAsList === "boolean") ? configObj.displayAsList : pendingDisplayAsList
             pendingListIconSize = (typeof configObj.listIconSize === "number") ? configObj.listIconSize : pendingListIconSize
             pendingwidgetIconSize = (typeof configObj.widgetIconSize === "number") ? configObj.widgetIconSize : pendingwidgetIconSize
+            popupOpacitySpin.value = (configObj && typeof configObj.popupOpacity === "number") ? Math.round(configObj.popupOpacity * 100) : popupOpacitySpin.value
+            pendingPopupColor = configObj.popupColor || pendingPopupColor
+            pendingPopupTextColor = (typeof configObj.popupTextColor === "string") ? configObj.popupTextColor : pendingPopupTextColor
 
             // widgetIcon: prefer instance value if available
             try {
@@ -105,6 +111,10 @@ ColumnLayout {
             popupWidthSpin.value = (configObj && typeof configObj.popupWidth === "number") ? configObj.popupWidth : popupWidthSpin.value
             popupHeightSpin.value = (configObj && typeof configObj.popupHeight === "number") ? configObj.popupHeight : popupHeightSpin.value
             widgetIconSizeSpin.value = (configObj && typeof configObj.widgetIconSize === "number") ? configObj.widgetIconSize : widgetIconSize.value
+            popupOpacitySpin.value = (configObj && typeof configObj.popupOpacity === "number") ? configObj.popupOpacity : popupOpacitySpin.value
+            popupColorBtn = (configObj && typeof configObj.popupColor === "string") ? configObj.popupColor : popupColorBtn
+            popupTextColorBtn = (configObj && typeof configObj.popupTextColor === "string") ? configObj.popupTextColor : popupTextColorBtn
+            textColorDialog.currentColor = (configObj && typeof configObj.popupTextColor === "string") ? configObj.popupTextColor : textColorDialog.currentColor
 
             // Debug log
             try {
@@ -161,7 +171,7 @@ ColumnLayout {
     }
 
     RowLayout {
-        spacing: 12
+        Item { width: 3 }
         // Left column: label and size control stacked vertically
         ColumnLayout {
             spacing: 6
@@ -359,6 +369,136 @@ ColumnLayout {
                     onValueChanged: pendingPopupHeight = value
                 }
             }
+
+            RowLayout {
+                spacing: 8
+                Item { width: 20 }
+                Layout.alignment: Qt.AlignVCenter
+
+                Label {
+                    text: i18n("Popup opacity:")
+                    Layout.alignment: Qt.AlignVCenter
+                }
+
+                Slider {
+                    id: popupOpacitySlider
+                    from: 0; to: 100; stepSize: 1
+                    value: Math.round((pendingPopupOpacity || 1.0) * 100)
+                    Layout.preferredWidth: 160
+                    onValueChanged: {
+                        pendingPopupOpacity = value / 100
+                        if (popupOpacitySpin.value !== value) popupOpacitySpin.value = value
+                    }
+                    ToolTip.visible: true
+                    ToolTip.text: value + "%"
+                }
+
+                SpinBox {
+                    id: popupOpacitySpin
+                    from: 0; to: 100; stepSize: 1
+                    value: Math.round((pendingPopupOpacity || 1.0) * 100)
+                    onValueChanged: pendingPopupOpacity = value / 100
+                }
+
+                // a small visual indicator next to the spinbox (optional)
+                Rectangle {
+                    width: 36; height: 20; radius: 4
+                    color: pendingPopupColor || "#222222"
+                    opacity: pendingPopupOpacity
+                    border.color: "gray"
+                    Layout.alignment: Qt.AlignVCenter
+                    visible: false // if not needed, it's hidden; can set it for an additional preview.
+                }
+            }
+
+            RowLayout {
+                spacing: 8
+                Layout.alignment: Qt.AlignVCenter
+                Item { width: 40 }
+
+                Label {
+                    text: i18n("Colors:")
+                    Layout.alignment: Qt.AlignVCenter
+                }
+                Item { width: 6 }
+
+                // Background color button: shows color swatch
+                Button {
+                    id: popupColorBtn
+                    text: i18n("Popup")
+                    onClicked: colorDialog.open()
+                    Layout.alignment: Qt.AlignVCenter
+                    padding: 5
+                    Layout.preferredWidth: 75
+
+                    contentItem: Rectangle {
+                        anchors.fill: parent
+                        radius: 6
+                        border.color: "gray"
+                        // border.width: 1
+                        color: pendingPopupColor || "#222222"
+                        opacity: pendingPopupOpacity
+                    }
+                }
+
+                // Text color button: shows preview label with current text color
+                Button {
+                    id: popupTextColorBtn
+                    text: ""
+                    onClicked: textColorDialog.open()
+                    Layout.alignment: Qt.AlignVCenter
+                    padding: 5
+                    Layout.preferredWidth: 75
+
+                    contentItem: Item {
+                        anchors.fill: parent
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            // preview of text color
+                            Text {
+                                id: popupTextPreview
+                                text: (pendingPopupTextColor === "" ? i18n("Text") : "Text")
+                                font.pixelSize: 14
+                                color: pendingPopupTextColor
+                            }
+                        }
+                    }
+                }
+
+                Button {
+                    id: popupColorsResetBtn
+                    text: i18n("Reset")
+                    Layout.alignment: Qt.AlignVCenter
+                    padding: 5
+                    Layout.preferredWidth: 75
+
+                    onClicked: {
+                        pendingPopupColor = "#222"
+                        pendingPopupTextColor = ""
+
+                        try { colorDialog.currentColor = pendingPopupColor || "#222222" } catch(e) {}
+                        try { textColorDialog.currentColor = (pendingPopupTextColor && pendingPopupTextColor.length) ? pendingPopupTextColor : "#ffffff" } catch(e) {}
+                    }
+                }
+
+                ColorDialog {
+                    id: colorDialog
+                    currentColor: pendingPopupColor || "#222222"
+                    onAccepted: {
+                        pendingPopupColor = currentColor
+                    }
+                }
+
+                ColorDialog {
+                    id: textColorDialog
+                    title: i18n("Select text color (leave empty for Auto)")
+                    currentColor: pendingPopupTextColor
+                    onAccepted: {
+                        pendingPopupTextColor = currentColor
+                    }
+                }
+            }
             Item { height: 2 }
         }
 
@@ -512,6 +652,14 @@ ColumnLayout {
                         widgetIconName.text = pendingWidgetIcon
                         widgetIconSizeSpin.value = pendingwidgetIconSize
                         try { widgetIconBtn.contentItem.source = iconSourceFromValue(pendingWidgetIcon || "") } catch(e) {}
+                        try { popupOpacity = pendingPopupOpacity } catch(e) {}
+                        try { popupColor = pendingPopupColor } catch(e) {}
+                        try { popupTextColor = pendingPopupTextColor } catch(e) {}
+                        try { popupOpacitySpin.value = Math.round((pendingPopupOpacity || 1.0) * 100) } catch(e) {}
+                        try { popupColorBtn = pendingPopupColor || popupColorBtn } catch(e) {}
+                        try { popupTextColorBtn = (pendingPopupTextColor && pendingPopupTextColor.length) ? pendingPopupTextColor : i18n("Auto") } catch(e) {}
+                        try { popupPreviewRect.color = pendingPopupColor } catch(e) {}
+                        try { popupPreviewRect.opacity = pendingPopupOpacity } catch(e) {}
 
                         // Reset Utils.debugLogs to the saved value (if any)
                         try {
@@ -557,6 +705,21 @@ ColumnLayout {
                             configObj.widgetIcon = toSave
                         }
                     } catch(e) { Utils.dbg("DBG Settings: apply -> setInstanceValue(widgetIcon) failed", e) }
+
+                    // Apply popup appearance pending -> instance
+                    try {
+                        if (configObj && typeof configObj.setInstanceValue === "function") {
+                            if (typeof pendingPopupOpacity === "number") configObj.setInstanceValue("popupOpacity", pendingPopupOpacity)
+                                if (typeof pendingPopupColor === "string") configObj.setInstanceValue("popupColor", pendingPopupColor)
+                                    if (typeof pendingPopupTextColor === "string") configObj.setInstanceValue("popupTextColor", pendingPopupTextColor)
+                        } else {
+                            // fallback: write to top-level configObj props and save
+                            try { if (typeof pendingPopupOpacity === "number") configObj.popupOpacity = pendingPopupOpacity } catch(e) {}
+                            try { if (typeof pendingPopupColor === "string") configObj.popupColor = pendingPopupColor } catch(e) {}
+                            try { if (typeof pendingPopupTextColor === "string") configObj.popupTextColor = pendingPopupTextColor } catch(e) {}
+                            try { if (typeof configObj.saveInstanceConfig === "function") configObj.saveInstanceConfig() } catch(e) {}
+                        }
+                    } catch(e) { Utils.dbg("DBG Settings: Apply popup appearance failed", e) }
 
                     Utils.dbg("DBG Settings: Apply -> pendingwidgetIconSize=", pendingwidgetIconSize,
                               "willUseSetInstanceValue=", (configObj && typeof configObj.setInstanceValue === "function"));

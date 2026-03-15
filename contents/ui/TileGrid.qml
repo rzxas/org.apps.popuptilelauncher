@@ -140,7 +140,7 @@ Item {
 
                     Text {
                         text: modelData.name || modelData.exec || "Unnamed"
-                        color: "#EEE"
+                        color: (configObj && typeof configObj.popupTextColor === "string" && configObj.popupTextColor.length) ? configObj.popupTextColor : "white"
                         font.pixelSize: 16
                         elide: Text.ElideRight
                         wrapMode: Text.NoWrap

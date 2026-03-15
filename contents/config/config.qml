@@ -20,6 +20,9 @@ Item {
     property bool displayAsList: false
     property int popupWidth: 260
     property int popupHeight: 260
+    property real popupOpacity: 1.0
+    property string popupColor: "#222222"
+    property string popupTextColor: ""
     property string widgetIcon: Qt.resolvedUrl("../icons/default-i.png")
     property bool _loadingInstanceConfig: false
 
@@ -224,6 +227,50 @@ Item {
                     } catch(e) { Utils.dbg("DBG config.setInstanceValue widgetIconSize normalize failed", e) }
                 } else if (key === "columns" || key === "rows") {
                     // Don't touch it here — loadInstanceConfig will pick it up on the next call
+                } else if (key === "popupOpacity") {
+                    try {
+                        var v = (typeof value === "number") ? value : parseFloat(value);
+                        if (!isNaN(v)) {
+                            // clamp
+                            if (v < 0) v = 0;
+                            if (v > 1) v = 1;
+                            popupOpacity = v;
+                            all[ik][key] = v;
+                        } else {
+                            if (typeof all[ik][key] !== "undefined") {
+                                var prev = parseFloat(all[ik][key]) || popupOpacity;
+                                all[ik][key] = prev;
+                                popupOpacity = prev;
+                            }
+                        }
+                    } catch(e) { Utils.dbg("DBG config.setInstanceValue popupOpacity normalize failed", e) }
+                } else if (key === "popupColor" || key === "popupTextColor") {
+                    try {
+                        var s = (typeof value === "string") ? value : (value ? String(value) : "");
+                        if (s && s.length) {
+                            var ok = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(s);
+                            if (ok) {
+                                if (key === "popupColor") popupColor = s;
+                                else popupTextColor = s;
+                                all[ik][key] = s;
+                            } else {
+                                if (key === "popupColor") popupColor = s;
+                                else popupTextColor = s;
+                                all[ik][key] = s;
+                            }
+                        } else {
+                            if (key === "popupColor") {
+                                if (typeof all[ik][key] !== "undefined") {
+                                    var prevC = all[ik][key] || popupColor;
+                                    popupColor = prevC;
+                                    all[ik][key] = prevC;
+                                }
+                            } else {
+                                popupTextColor = "";
+                                all[ik][key] = "";
+                            }
+                        }
+                    } catch(e) { Utils.dbg("DBG config.setInstanceValue popupColor/text normalize failed", e) }
                 }
             } catch(e) { Utils.dbg("DBG config.setInstanceValue update local prop failed", e) }
 
@@ -307,6 +354,9 @@ Item {
                 try { widgetIcon = (typeof inst.widgetIcon === "string" && inst.widgetIcon.length) ? inst.widgetIcon : widgetIcon } catch(e){}
                 try { widgetIconSize = (typeof inst.widgetIconSize === "number") ? inst.widgetIconSize : widgetIconSize } catch(e){}
                 try { listIconSize = (typeof inst.listIconSize === "number") ? inst.listIconSize : listIconSize } catch(e){}
+                try { popupOpacity = (typeof inst.popupOpacity === "number") ? inst.popupOpacity : popupOpacity } catch(e){}
+                try { popupColor = (typeof inst.popupColor === "string" && inst.popupColor.length) ? inst.popupColor : popupColor } catch(e){}
+                try { popupTextColor = (typeof inst.popupTextColor === "string") ? inst.popupTextColor : popupTextColor } catch(e){}
 
                 Utils.dbg("DBG config: loaded appsModel length =", appsModel.length)
         } catch(e) {
@@ -369,6 +419,9 @@ Item {
                 widgetIcon: widgetIcon,
                 widgetIconSize: widgetIconSize,
                 listIconSize: listIconSize,
+                popupOpacity: popupOpacity,
+                popupColor: popupColor,
+                popupTextColor: popupTextColor,
                 debugLogs: (typeof existingInst.debugLogs !== "undefined") ? existingInst.debugLogs : !!(existingInst.debugLogs || false),
             });
             instToSave.debugLogs = !!(typeof Utils !== "undefined" ? Utils.debugLogs : instToSave.debugLogs);
@@ -378,7 +431,6 @@ Item {
             // Try per-instance write via helper; fallback to legacy full-map write
             var wrote = false;
             try {
-                // wrote = _writeInstanceRaw(ik, instJson);
                 all[ik] = instToSave;
                 var allJson = JSON.stringify(all || {});
                 var wrote = false;
